@@ -1,0 +1,56 @@
+1. Make config
+sudo mkdir -p /etc/gatekeeper
+sudo nano /etc/gatekeeper/rules.conf
+
+Example content:
+8000:100.64.50.10:22
+8888:100.64.50.10:8888
+9000:100.64.50.11:5901
+
+
+2. make launcher
+sudo nano /usr/local/bin/gatekeeper.sh
+
+Content:
+#!/bin/bash
+CONFIG="/etc/gatekeeper/rules.conf"
+
+while IFS=: read -r LOCAL REMOTEHOST REMOTEPORT; do
+    # Skip blank or commented lines
+    [[ -z "$LOCAL" || "$LOCAL" =~ ^# ]] && continue
+
+    echo "Launching forward: $LOCAL → $REMOTEHOST:$REMOTEPORT"
+
+    socat TCP-LISTEN:"$LOCAL",fork TCP:"$REMOTEHOST":"$REMOTEPORT" &
+
+done < "$CONFIG"
+
+wait
+
+Make it executable
+sudo chmod +x /usr/local/bin/gatekeeper.sh
+
+3. Systemd service
+sudo nano /etc/systemd/system/gatekeeper.service
+
+content:
+[Unit]
+Description=Gatekeeper Multi-Port Forwarder
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/gatekeeper.sh
+Restart=always
+RestartSec=2
+User=nobody
+Group=nogroup
+
+[Install]
+WantedBy=multi-user.target
+
+
+4. start it
+sudo systemctl daemon-reload
+sudo systemctl enable --now gatekeeper
