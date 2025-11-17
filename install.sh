@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+echo "=== Installing dependencies ==="
+sudo apt install socat
+
 echo "=== Creating Gatekeeper config directory ==="
 sudo mkdir -p /etc/gatekeeper
 
